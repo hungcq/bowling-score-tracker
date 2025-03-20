@@ -11,7 +11,6 @@ type Game interface {
 	StartGame(playerNames []string) error
 	GetCurrentFrame() int
 	GetPlayers() []*Player
-	SetFrameScore(playerIndex int, isStrike, isSpare bool, scores ...int) error
 }
 
 const numPin = 10
