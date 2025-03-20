@@ -25,7 +25,7 @@ func TestGameManager(t *testing.T) {
 				m := NewGameManager()
 				gameId, err := m.StartGame(configs.TenPin, []string{"hung"})
 				assert.NoError(t, err)
-				assert.GreaterOrEqual(t, gameId, 1)
+				assert.GreaterOrEqual(t, gameId, int32(1))
 			})
 		})
 	})
