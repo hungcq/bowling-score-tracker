@@ -12,7 +12,7 @@ type Game interface {
 	NextFrame() int
 	GetCurrentFrame() int
 	GetPlayers() []*Player
-	SetFrameScore(playerIndex int, isStrike, isSpare bool, scores ...int) error
+	SetFrameResult(playerIndex int, pins ...int) error
 }
 
 const numPin = 10
@@ -57,12 +57,12 @@ func (t *TenPinGame) NextFrame() int {
 	return t.currentFrame
 }
 
-func (t *TenPinGame) SetFrameScore(playerIndex int, isStrike, isSpare bool, scores ...int) error {
+func (t *TenPinGame) SetFrameResult(playerIndex int, pins ...int) error {
 	if playerIndex < 0 || playerIndex >= len(t.players) {
 		return errors.New("invalid player index")
 	}
 
-	return t.players[playerIndex].Frames[t.currentFrame].KnockPins(isStrike, isSpare, scores...)
+	return t.players[playerIndex].Frames[t.currentFrame].KnockPins(pins...)
 }
 
 type Player struct {
@@ -103,42 +103,43 @@ func (p *Player) GetScores() []int {
 }
 
 type Frame interface {
-	KnockPins(isStrike, isSpare bool, pins ...int) error
+	KnockPins(pins ...int) error
 	GetPins() []int
 }
 
 type NormalFrame struct {
-	rollScores []int
+	pins []int
 }
 
-func (n *NormalFrame) KnockPins(isStrike, isSpare bool, scores ...int) error {
-	if isStrike {
-		n.rollScores = []int{numPin}
-		return nil
-	}
-
-	if isSpare {
-		if len(scores) != 1 {
-			return errors.New("invalid scores input: len must be 1 for spare")
+func (n *NormalFrame) KnockPins(pins ...int) error {
+	// strike
+	if pins[0] == numPin {
+		if len(pins) > 1 {
+			return errors.New("invalid input: len must be 1 for strike")
 		}
-		n.rollScores = []int{scores[0], numPin - scores[0]}
+		n.pins = []int{numPin}
 		return nil
 	}
 
-	if len(scores) != 2 {
-		return errors.New("invalid scores input: len must be 2 if the frame is not strike or spare")
+	if len(pins) != 2 {
+		return errors.New("invalid input: len must be 2 for non-strike")
 	}
-	n.rollScores = scores
+
+	if !validPins(pins[0], pins[1]) {
+		return errors.New("invalid input. sum must <= 2.")
+	}
+
+	n.pins = pins
 	return nil
 }
 
 func (n *NormalFrame) GetPins() []int {
-	return n.rollScores
+	return n.pins
 }
 
 func (n *NormalFrame) GetScore(nextRolls []int) int {
 	res := 0
-	for _, e := range n.rollScores {
+	for _, e := range n.pins {
 		res += e
 	}
 
@@ -156,49 +157,65 @@ func (n *NormalFrame) GetScore(nextRolls []int) int {
 }
 
 func (n *NormalFrame) isStrike() bool {
-	return len(n.rollScores) == 1 && n.rollScores[0] == numPin
+	return len(n.pins) >= 1 && n.pins[0] == numPin
 }
 
 func (n *NormalFrame) isSpare() bool {
-	return len(n.rollScores) == 2 && n.rollScores[0] != numPin && n.rollScores[0]+n.rollScores[1] == numPin
+	return len(n.pins) >= 2 && n.pins[0]+n.pins[1] == numPin
 }
 
 type LastFrame struct {
-	rollScores []int
+	pins []int
 }
 
-func (l *LastFrame) KnockPins(isStrike, isSpare bool, scores ...int) error {
-	if isStrike {
-		if len(scores) != 2 {
-			return errors.New("invalid scores input: len must be 2 for strike of last frame")
+func (l *LastFrame) KnockPins(pins ...int) error {
+	if len(pins) < 2 {
+		return errors.New("invalid input: len must be at least 2 for last frame")
+	}
+	if pins[0] > numPin {
+		return errors.New("invalid input for first roll")
+	}
+	// strike
+	if pins[0] == numPin {
+		if len(pins) < 3 {
+			return errors.New("invalid input: len must be 3 for last frame strike")
 		}
-		l.rollScores = []int{numPin, scores[0], scores[1]}
-		return nil
+		if pins[1] == numPin {
+			if pins[2] > numPin {
+				return errors.New("invalid input for last roll")
+			}
+		} else if !validPins(pins[1], pins[2]) {
+			return errors.New("invalid input for 2 last roll")
+		}
+	} else if pins[0]+pins[1] == numPin { // spare
+		if len(pins) < 3 {
+			return errors.New("invalid input: len must be 3 for last frame spare")
+		}
+		if pins[2] > numPin {
+			return errors.New("invalid input for last roll")
+		}
+	} else {
+		if len(pins) != 2 {
+			return errors.New("invalid input: len must be 2 for last frame open")
+		}
 	}
 
-	if isSpare {
-		if len(scores) != 2 {
-			return errors.New("invalid scores input: len must be 2 for spare")
-		}
-		l.rollScores = []int{scores[0], numPin - scores[0], scores[1]}
-		return nil
-	}
-
-	if len(scores) != 2 {
-		return errors.New("invalid scores input: len must be 2 if the frame is not strike or spare")
-	}
-	l.rollScores = scores
+	l.pins = pins
 	return nil
 }
 
 func (l *LastFrame) GetPins() []int {
-	return l.rollScores
+	return l.pins
 }
 
 func (l *LastFrame) GetScore() int {
 	res := 0
-	for _, e := range l.rollScores {
+	for _, e := range l.pins {
 		res += e
 	}
 	return res
+}
+
+func validPins(firstRoll, secondRoll int) bool {
+	return firstRoll >= 0 && secondRoll >= 0 && firstRoll+secondRoll <= numPin
 }

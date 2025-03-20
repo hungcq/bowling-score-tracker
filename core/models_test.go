@@ -91,10 +91,10 @@ func TestTenPinGame(t *testing.T) {
 			err := game.StartGame([]string{"hung"})
 			require.NoError(t, err)
 
-			err = game.SetFrameScore(-1, false, false, 3, 4)
+			err = game.SetFrameResult(-1, 3, 4)
 			assert.Error(t, err, "should error for invalid player index")
 
-			err = game.SetFrameScore(1, false, false, 3, 4)
+			err = game.SetFrameResult(1, 3, 4)
 			assert.Error(t, err, "should error for invalid player index when out of bounds")
 		})
 
@@ -105,11 +105,11 @@ func TestTenPinGame(t *testing.T) {
 				require.NoError(t, err)
 				game.currentFrame = 0
 
-				err = game.SetFrameScore(0, false, false, 7)
-				assert.NotNil(t, err, "open frame require 2 scores")
+				err = game.SetFrameResult(0, 7)
+				assert.NotNil(t, err, "non-strike frame require 2 scores")
 
-				err = game.SetFrameScore(0, false, true)
-				assert.NotNil(t, err, "spare frame require 1 scores")
+				err = game.SetFrameResult(0, 10, 0)
+				assert.NotNil(t, err, "strike frame require 1 scores")
 			})
 
 			t.Run("for_last_frame", func(t *testing.T) {
@@ -118,14 +118,14 @@ func TestTenPinGame(t *testing.T) {
 				require.NoError(t, err)
 				game.currentFrame = 9
 
-				err = game.SetFrameScore(0, false, false, 2, 2, 3)
+				err = game.SetFrameResult(0, 2, 2, 3)
 				assert.NotNil(t, err, "open frame require 2 scores")
 
-				err = game.SetFrameScore(0, true, false, 1)
-				assert.NotNil(t, err, "strike frame require 2 scores")
+				err = game.SetFrameResult(0, 10, 1)
+				assert.NotNil(t, err, "strike frame require 3 scores")
 
-				err = game.SetFrameScore(0, true, false, 1)
-				assert.NotNil(t, err, "spare frame require 2 scores")
+				err = game.SetFrameResult(0, 2, 8)
+				assert.NotNil(t, err, "spare frame require 3 scores")
 			})
 		})
 		t.Run("normal_frame_strike", func(t *testing.T) {
@@ -134,7 +134,7 @@ func TestTenPinGame(t *testing.T) {
 			require.NoError(t, err)
 			game.currentFrame = 0
 
-			err = game.SetFrameScore(0, true, false)
+			err = game.SetFrameResult(0, 10)
 
 			assert.NoError(t, err, "should return success")
 			rolls := game.GetPlayers()[0].Frames[game.currentFrame].GetPins()
@@ -147,7 +147,7 @@ func TestTenPinGame(t *testing.T) {
 			require.NoError(t, err)
 			game.currentFrame = 1
 
-			err = game.SetFrameScore(0, false, true, 4)
+			err = game.SetFrameResult(0, 4, 6)
 
 			assert.NoError(t, err, "should return success")
 			rolls := game.GetPlayers()[0].Frames[game.currentFrame].GetPins()
@@ -161,7 +161,7 @@ func TestTenPinGame(t *testing.T) {
 			require.NoError(t, err)
 			game.currentFrame = 1
 
-			err = game.SetFrameScore(0, false, false, 3, 5)
+			err = game.SetFrameResult(0, 3, 5)
 
 			assert.NoError(t, err, "should return success")
 			rolls := game.GetPlayers()[0].Frames[game.currentFrame].GetPins()
@@ -175,7 +175,7 @@ func TestTenPinGame(t *testing.T) {
 			require.NoError(t, err)
 			game.currentFrame = 9
 
-			err = game.SetFrameScore(0, true, false, 7, 2)
+			err = game.SetFrameResult(0, 10, 7, 2)
 			assert.NoError(t, err, "should return success")
 			rolls := game.GetPlayers()[0].Frames[game.currentFrame].GetPins()
 			expected := []int{numPin, 7, 2}
@@ -188,10 +188,10 @@ func TestTenPinGame(t *testing.T) {
 			require.NoError(t, err)
 			game.currentFrame = 9
 
-			err = game.SetFrameScore(0, false, true, 6, 8)
+			err = game.SetFrameResult(0, 6, 4, 8)
 			assert.NoError(t, err, "should return success")
 			rolls := game.GetPlayers()[0].Frames[game.currentFrame].GetPins()
-			expected := []int{6, numPin - 6, 8}
+			expected := []int{6, 4, 8}
 			assert.Equal(t, expected, rolls, "should record three rolls (including bonus)")
 		})
 
@@ -201,7 +201,7 @@ func TestTenPinGame(t *testing.T) {
 			require.NoError(t, err)
 			game.currentFrame = 9
 
-			err = game.SetFrameScore(0, false, false, 3, 6)
+			err = game.SetFrameResult(0, 3, 6)
 			assert.NoError(t, err)
 			rolls := game.GetPlayers()[0].Frames[game.currentFrame].GetPins()
 			expected := []int{3, 6}
@@ -215,15 +215,11 @@ func TestPlayer(t *testing.T) {
 		player := NewPlayer("max")
 		// For frames 0-8, set as strikes.
 		for i := 0; i < 9; i++ {
-			nf, ok := player.Frames[i].(*NormalFrame)
-			assert.True(t, ok, "frame %d should be a NormalFrame", i)
-			err := nf.KnockPins(true, false)
+			err := player.Frames[i].KnockPins(10)
 			assert.NoError(t, err)
 		}
 		// Last frame as strike with two bonus rolls.
-		lf, ok := player.Frames[9].(*LastFrame)
-		assert.True(t, ok, "frame 9 should be a LastFrame")
-		err := lf.KnockPins(true, false, 10, 10)
+		err := player.Frames[9].KnockPins(10, 10, 10)
 		assert.NoError(t, err)
 
 		scores := player.GetScores()
@@ -247,15 +243,11 @@ func TestPlayer(t *testing.T) {
 			{3, 5}, // 8
 		}
 		for i, s := range scores {
-			nf, ok := player.Frames[i].(*NormalFrame)
-			require.True(t, ok, "frame %d should be a NormalFrame", i)
-			err := nf.KnockPins(false, false, s[0], s[1])
+			err := player.Frames[i].KnockPins(s[0], s[1])
 			require.NoError(t, err)
 		}
 		// Last frame as open frame.
-		lf, ok := player.Frames[9].(*LastFrame)
-		require.True(t, ok, "frame 9 should be a LastFrame")
-		err := lf.KnockPins(false, false, 3, 4) // 7
+		err := player.Frames[9].KnockPins(3, 4) // 7
 		require.NoError(t, err)
 
 		// execute
@@ -268,10 +260,10 @@ func TestPlayer(t *testing.T) {
 
 	t.Run("incomplete_game_with_strike_spare", func(t *testing.T) {
 		player := NewPlayer("spare")
-		player.Frames[0].(*NormalFrame).KnockPins(true, false)
-		player.Frames[1].(*NormalFrame).KnockPins(false, true, 4)
-		player.Frames[2].(*NormalFrame).KnockPins(false, false, 4, 4)
-		player.Frames[3].(*NormalFrame).KnockPins(true, false)
+		player.Frames[0].KnockPins(10)
+		player.Frames[1].KnockPins(4, 6)
+		player.Frames[2].KnockPins(4, 4)
+		player.Frames[3].KnockPins(10)
 		expected := []int{20, 14, 8, 10, 0, 0, 0, 0, 0, 0}
 		assert.Equal(t, expected, player.GetScores())
 	})
