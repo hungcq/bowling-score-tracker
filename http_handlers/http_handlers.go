@@ -55,11 +55,12 @@ func (h *GameHttpHandler) StartGame(c *gin.Context) {
 
 	gameId, err := h.manager.StartGame(req.GameType, req.PlayerNames)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, StartGameResponse{
+		c.JSON(http.StatusBadRequest, StartGameResponse{
 			Response: Response{
 				Error: err.Error(),
 			},
 		})
+		return
 	}
 
 	c.JSON(http.StatusOK, &StartGameResponse{GameId: gameId})

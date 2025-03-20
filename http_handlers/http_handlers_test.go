@@ -75,7 +75,7 @@ func TestGameHttpHandler(t *testing.T) {
 				r.ServeHTTP(recorder, req)
 
 				// verify
-				assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+				assert.Equal(t, http.StatusBadRequest, recorder.Code)
 			})
 			t.Run("should_success_with_gameid_when_starting_game_successfully", func(t *testing.T) {
 				// setup
