@@ -1,22 +1,25 @@
 package http_handlers
 
 import (
-	"bowling-score-tracker/configs"
-	"bowling-score-tracker/http_handlers/mocks"
 	"bytes"
 	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
 	"github.com/gin-gonic/gin"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"net/http"
-	"net/http/httptest"
-	"testing"
+
+	"bowling-score-tracker/configs"
+	"bowling-score-tracker/core"
+	"bowling-score-tracker/http_handlers/mocks"
 )
 
 func TestGameHttpHandler(t *testing.T) {
-	t.Run("start_game", func(t *testing.T) {
+	t.Run("StartGame", func(t *testing.T) {
 		t.Run("should_return_bad_request_when_input_data_cant_be_parsed", func(t *testing.T) {
 			r := gin.Default()
 			handler := NewGameHttpHandler(nil)
@@ -92,6 +95,146 @@ func TestGameHttpHandler(t *testing.T) {
 				require.Nil(t, json.Unmarshal(recorder.Body.Bytes(), &response))
 				assert.Equal(t, int32(4), response.GameId)
 			})
+		})
+	})
+
+	t.Run("SetFrameResult", func(t *testing.T) {
+		t.Run("should_return_bad_request_when_input_data_cant_be_parsed", func(t *testing.T) {
+			r := gin.Default()
+			handler := NewGameHttpHandler(nil)
+
+			r.POST("/123/set_frame_result", handler.SetFrameResult)
+
+			req, _ := http.NewRequest(http.MethodPost, "/123/set_frame_result", bytes.NewBuffer([]byte("abc")))
+			recorder := httptest.NewRecorder()
+			r.ServeHTTP(recorder, req)
+
+			assert.Equal(t, http.StatusBadRequest, recorder.Code)
+		})
+
+		t.Run("should_return_bad_request_when_game_id_is_invalid", func(t *testing.T) {
+			validReq := SetFrameResultRequest{
+				PlayerIndex: 0,
+				Pins:        []string{"X", "5"},
+			}
+			body, _ := json.Marshal(validReq)
+			r := gin.Default()
+			handler := NewGameHttpHandler(nil)
+
+			r.POST("/abc/set_frame_result", handler.SetFrameResult)
+
+			req, _ := http.NewRequest(http.MethodPost, "/abc/set_frame_result", bytes.NewBuffer(body))
+			recorder := httptest.NewRecorder()
+			r.ServeHTTP(recorder, req)
+
+			assert.Equal(t, http.StatusBadRequest, recorder.Code)
+		})
+
+		t.Run("should_return_bad_request_when_parsing_pins_fails", func(t *testing.T) {
+			r := gin.Default()
+			handler := NewGameHttpHandler(nil)
+
+			r.POST("/123/set_frame_result", handler.SetFrameResult)
+
+			invalidReq := SetFrameResultRequest{
+				PlayerIndex: 0,
+				Pins:        []string{"invalid"},
+			}
+			bodyInvalid, _ := json.Marshal(invalidReq)
+			req, _ := http.NewRequest(http.MethodPost, "/123/set_frame_result", bytes.NewBuffer(bodyInvalid))
+			recorder := httptest.NewRecorder()
+			r.ServeHTTP(recorder, req)
+
+			assert.Equal(t, http.StatusBadRequest, recorder.Code)
+		})
+
+		t.Run("when_input_is_valid", func(t *testing.T) {
+			validReq := SetFrameResultRequest{
+				PlayerIndex: 0,
+				Pins:        []string{"X", "5"},
+			}
+			body, _ := json.Marshal(validReq)
+
+			r := gin.Default()
+			mockCtrl := gomock.NewController(t)
+
+			mockManager := mocks.NewMockGameManager(mockCtrl)
+			handler := NewGameHttpHandler(mockManager)
+			r.POST("/:game_id/set_frame_result", handler.SetFrameResult)
+
+			t.Run("should_call_manager_set_frame_result_with_correct_data", func(t *testing.T) {
+				expectedPins := []interface{}{10, 5}
+
+				mockManager.EXPECT().SetFrameResult(int32(123), validReq.PlayerIndex, expectedPins...).Return([]core.PlayerScore{}, nil)
+
+				req, _ := http.NewRequest(http.MethodPost, "/123/set_frame_result", bytes.NewBuffer(body))
+				recorder := httptest.NewRecorder()
+				r.ServeHTTP(recorder, req)
+
+				assert.Equal(t, http.StatusOK, recorder.Code)
+			})
+
+			t.Run("should_return_error_when_manager_set_frame_result_fails", func(t *testing.T) {
+				mockManager.EXPECT().SetFrameResult(int32(123), validReq.PlayerIndex, gomock.Any()).Return(nil, errors.New("set frame error"))
+
+				req, _ := http.NewRequest(http.MethodPost, "/123/set_frame_result", bytes.NewBuffer(body))
+				recorder := httptest.NewRecorder()
+				r.ServeHTTP(recorder, req)
+
+				assert.Equal(t, http.StatusBadRequest, recorder.Code)
+			})
+		})
+	})
+
+	t.Run("NextFrame", func(t *testing.T) {
+		t.Run("should_return_bad_request_when_game_id_is_invalid", func(t *testing.T) {
+			r := gin.Default()
+			handler := NewGameHttpHandler(nil)
+
+			r.POST("/abc/next_frame", handler.NextFrame)
+
+			req, _ := http.NewRequest(http.MethodPost, "/abc/next_frame", nil)
+			recorder := httptest.NewRecorder()
+			r.ServeHTTP(recorder, req)
+
+			assert.Equal(t, http.StatusBadRequest, recorder.Code)
+		})
+
+		t.Run("should_return_error_when_manager_next_frame_fails", func(t *testing.T) {
+			r := gin.Default()
+			mockCtrl := gomock.NewController(t)
+
+			mockManager := mocks.NewMockGameManager(mockCtrl)
+			handler := NewGameHttpHandler(mockManager)
+			r.POST("/:game_id/next_frame", handler.NextFrame)
+
+			mockManager.EXPECT().NextFrame(int32(456)).Return(0, errors.New("next frame error"))
+
+			req, _ := http.NewRequest(http.MethodPost, "/456/next_frame", nil)
+			recorder := httptest.NewRecorder()
+			r.ServeHTTP(recorder, req)
+
+			assert.Equal(t, http.StatusBadRequest, recorder.Code)
+		})
+
+		t.Run("should_return_current_frame_when_manager_next_frame_succeeds", func(t *testing.T) {
+			r := gin.Default()
+			mockCtrl := gomock.NewController(t)
+
+			mockManager := mocks.NewMockGameManager(mockCtrl)
+			handler := NewGameHttpHandler(mockManager)
+			r.POST("/:game_id/next_frame", handler.NextFrame)
+
+			mockManager.EXPECT().NextFrame(int32(789)).Return(5, nil)
+
+			req, _ := http.NewRequest(http.MethodPost, "/789/next_frame", nil)
+			recorder := httptest.NewRecorder()
+			r.ServeHTTP(recorder, req)
+
+			assert.Equal(t, http.StatusOK, recorder.Code)
+			var response NextFrameResponse
+			require.Nil(t, json.Unmarshal(recorder.Body.Bytes(), &response))
+			assert.Equal(t, 5, response.CurrentFrame)
 		})
 	})
 }

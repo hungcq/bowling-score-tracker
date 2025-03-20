@@ -6,6 +6,7 @@ package mocks
 
 import (
 	configs "bowling-score-tracker/configs"
+	core "bowling-score-tracker/core"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -32,6 +33,41 @@ func NewMockGameManager(ctrl *gomock.Controller) *MockGameManager {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockGameManager) EXPECT() *MockGameManagerMockRecorder {
 	return m.recorder
+}
+
+// NextFrame mocks base method.
+func (m *MockGameManager) NextFrame(gameId int32) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NextFrame", gameId)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// NextFrame indicates an expected call of NextFrame.
+func (mr *MockGameManagerMockRecorder) NextFrame(gameId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NextFrame", reflect.TypeOf((*MockGameManager)(nil).NextFrame), gameId)
+}
+
+// SetFrameResult mocks base method.
+func (m *MockGameManager) SetFrameResult(gameId int32, playerIndex int, pins ...int) ([]core.PlayerScore, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{gameId, playerIndex}
+	for _, a := range pins {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "SetFrameResult", varargs...)
+	ret0, _ := ret[0].([]core.PlayerScore)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SetFrameResult indicates an expected call of SetFrameResult.
+func (mr *MockGameManagerMockRecorder) SetFrameResult(gameId, playerIndex interface{}, pins ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{gameId, playerIndex}, pins...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetFrameResult", reflect.TypeOf((*MockGameManager)(nil).SetFrameResult), varargs...)
 }
 
 // StartGame mocks base method.

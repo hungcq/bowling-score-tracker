@@ -71,15 +71,15 @@ type Player struct {
 }
 
 func NewPlayer(name string) *Player {
-	var scores [10]Frame
+	var frames [10]Frame
 	for i := 0; i < 9; i++ {
-		scores[i] = &NormalFrame{}
+		frames[i] = &NormalFrame{}
 	}
-	scores[9] = &LastFrame{}
+	frames[9] = &LastFrame{}
 
 	return &Player{
 		Name:   name,
-		Frames: scores,
+		Frames: frames,
 	}
 }
 

@@ -1,9 +1,11 @@
 package main
 
 import (
-	"bowling-score-tracker/http_handlers"
-	"github.com/gin-gonic/gin"
 	"log"
+
+	"github.com/gin-gonic/gin"
+
+	"bowling-score-tracker/http_handlers"
 )
 
 func main() {
