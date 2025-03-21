@@ -19,56 +19,93 @@ func NewGameManager() *GameManager {
 	return &GameManager{GameById: map[int32]Game{}}
 }
 
-func (m *GameManager) StartGame(t configs.GameType, playerNames []string) (gameId int32, err error) {
+type GameInfo struct {
+	Id           int32         `json:"id"`
+	CurrentFrame int           `json:"current_frame"`
+	Players      []PlayerScore `json:"players"`
+}
+
+func (m *GameManager) StartGame(t configs.GameType, playerNames []string) (g GameInfo, err error) {
 	var game Game
 	switch t {
 	case configs.TenPin:
 		game = &TenPinGame{}
 	default:
-		return 0, errors.New("game type is not supported")
+		return g, errors.New("game type is not supported")
 	}
 
 	if err = game.StartGame(playerNames); err != nil {
-		return 0, err
+		return g, err
 	}
 
 	curId := id.Add(1)
 	m.GameById[curId] = game
-	return curId, nil
+	return GameInfo{
+		Id:           curId,
+		CurrentFrame: game.GetCurrentFrame(),
+		Players:      lo.Map(game.GetPlayers(), playerToPlayerScore),
+	}, nil
+}
+
+func (m *GameManager) GetGame(gameId int32) (g GameInfo, err error) {
+	game := m.GameById[gameId]
+	if game == nil {
+		return g, errors.New("invalid game id")
+	}
+
+	return GameInfo{
+		Id:           gameId,
+		CurrentFrame: game.GetCurrentFrame(),
+		Players:      lo.Map(game.GetPlayers(), playerToPlayerScore),
+	}, nil
 }
 
 type PlayerScore struct {
-	Scores     []int `json:"scores"`
-	TotalScore int   `json:"total_score"`
+	Name       string  `json:"name"`
+	Frames     [][]int `json:"frames"`
+	Scores     []int   `json:"scores"`
+	TotalScore int     `json:"total_score"`
 }
 
-func (m *GameManager) SetFrameResult(gameId int32, playerIndex int, pins ...int) ([]PlayerScore, error) {
+func (m *GameManager) SetFrameResult(gameId int32, playerIndex int, pins ...int) (g GameInfo, err error) {
 	game := m.GameById[gameId]
 	if game == nil {
-		return nil, errors.New("invalid game id")
+		return g, errors.New("invalid game id")
 	}
 
-	if err := game.SetFrameResult(playerIndex, pins...); err != nil {
-		return nil, err
+	if err = game.SetFrameResult(playerIndex, pins...); err != nil {
+		return g, err
 	}
 
-	res := lo.Map(game.GetPlayers(), func(item *Player, index int) PlayerScore {
-		return PlayerScore{
-			Scores: item.GetScores(),
-			TotalScore: lo.Reduce(item.GetScores(), func(agg int, item int, index int) int {
-				return agg + item
-			}, 0),
-		}
-	})
-
-	return res, nil
+	return GameInfo{
+		Id:           gameId,
+		CurrentFrame: game.GetCurrentFrame(),
+		Players:      lo.Map(game.GetPlayers(), playerToPlayerScore),
+	}, nil
 }
 
-func (m *GameManager) NextFrame(gameId int32) (int, error) {
+func (m *GameManager) NextFrame(gameId int32) (g GameInfo, err error) {
 	game := m.GameById[gameId]
 	if game == nil {
-		return 0, errors.New("invalid game id")
+		return g, errors.New("invalid game id")
 	}
 
-	return game.NextFrame(), nil
+	game.NextFrame()
+
+	return GameInfo{
+		Id:           gameId,
+		CurrentFrame: game.GetCurrentFrame(),
+		Players:      lo.Map(game.GetPlayers(), playerToPlayerScore),
+	}, nil
+}
+
+func playerToPlayerScore(p *Player, index int) PlayerScore {
+	return PlayerScore{
+		Name:   p.Name,
+		Frames: p.GetFrameResults(),
+		Scores: p.GetScores(),
+		TotalScore: lo.Reduce(p.GetScores(), func(agg int, item int, index int) int {
+			return agg + item
+		}, 0),
+	}
 }

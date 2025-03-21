@@ -35,11 +35,26 @@ func (m *MockGameManager) EXPECT() *MockGameManagerMockRecorder {
 	return m.recorder
 }
 
+// GetGame mocks base method.
+func (m *MockGameManager) GetGame(gameId int32) (core.GameInfo, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetGame", gameId)
+	ret0, _ := ret[0].(core.GameInfo)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetGame indicates an expected call of GetGame.
+func (mr *MockGameManagerMockRecorder) GetGame(gameId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGame", reflect.TypeOf((*MockGameManager)(nil).GetGame), gameId)
+}
+
 // NextFrame mocks base method.
-func (m *MockGameManager) NextFrame(gameId int32) (int, error) {
+func (m *MockGameManager) NextFrame(gameId int32) (core.GameInfo, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "NextFrame", gameId)
-	ret0, _ := ret[0].(int)
+	ret0, _ := ret[0].(core.GameInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -51,14 +66,14 @@ func (mr *MockGameManagerMockRecorder) NextFrame(gameId interface{}) *gomock.Cal
 }
 
 // SetFrameResult mocks base method.
-func (m *MockGameManager) SetFrameResult(gameId int32, playerIndex int, pins ...int) ([]core.PlayerScore, error) {
+func (m *MockGameManager) SetFrameResult(gameId int32, playerIndex int, pins ...int) (core.GameInfo, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{gameId, playerIndex}
 	for _, a := range pins {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "SetFrameResult", varargs...)
-	ret0, _ := ret[0].([]core.PlayerScore)
+	ret0, _ := ret[0].(core.GameInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -71,10 +86,10 @@ func (mr *MockGameManagerMockRecorder) SetFrameResult(gameId, playerIndex interf
 }
 
 // StartGame mocks base method.
-func (m *MockGameManager) StartGame(t configs.GameType, playerNames []string) (int32, error) {
+func (m *MockGameManager) StartGame(t configs.GameType, playerNames []string) (core.GameInfo, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "StartGame", t, playerNames)
-	ret0, _ := ret[0].(int32)
+	ret0, _ := ret[0].(core.GameInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

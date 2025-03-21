@@ -83,6 +83,14 @@ func NewPlayer(name string) *Player {
 	}
 }
 
+func (p *Player) GetFrameResults() [][]int {
+	var res [][]int
+	for _, frame := range p.Frames {
+		res = append(res, frame.GetPins())
+	}
+	return res
+}
+
 func (p *Player) GetScores() []int {
 	var res []int
 	for i, f := range p.Frames {

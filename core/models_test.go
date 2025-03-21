@@ -267,4 +267,20 @@ func TestPlayer(t *testing.T) {
 		expected := []int{20, 14, 8, 10, 0, 0, 0, 0, 0, 0}
 		assert.Equal(t, expected, player.GetScores())
 	})
+
+	t.Run("complete_game_with_strike_spare", func(t *testing.T) {
+		player := NewPlayer("spare")
+		player.Frames[0].KnockPins(10)
+		player.Frames[1].KnockPins(9, 1)
+		player.Frames[2].KnockPins(8, 1)
+		player.Frames[3].KnockPins(7, 3)
+		player.Frames[4].KnockPins(10)
+		player.Frames[5].KnockPins(6, 4)
+		player.Frames[6].KnockPins(5, 3)
+		player.Frames[7].KnockPins(9, 1)
+		player.Frames[8].KnockPins(10)
+		player.Frames[9].KnockPins(7, 3, 8)
+		expected := []int{20, 18, 9, 20, 20, 15, 8, 20, 20, 18}
+		assert.Equal(t, expected, player.GetScores())
+	})
 }

@@ -14,6 +14,7 @@ import (
 func RegisterEndpoints(r *gin.Engine) {
 	gameHandler := NewGameHttpHandler(core.NewGameManager())
 	r.POST("/start_game", gameHandler.StartGame)
+	r.GET("/:game_id", gameHandler.GetGame)
 	r.POST("/:game_id/set_frame_result", gameHandler.SetFrameResult)
 	r.POST("/:game_id/next_frame", gameHandler.NextFrame)
 }
@@ -30,9 +31,10 @@ func NewGameHttpHandler(manager GameManager) *GameHttpHandler {
 
 //go:generate mockgen -source=http_handlers.go -destination=mocks/http_handlers.go -package=mocks
 type GameManager interface {
-	StartGame(t configs.GameType, playerNames []string) (gameId int32, err error)
-	SetFrameResult(gameId int32, playerIndex int, pins ...int) ([]core.PlayerScore, error)
-	NextFrame(gameId int32) (int, error)
+	StartGame(t configs.GameType, playerNames []string) (core.GameInfo, error)
+	GetGame(gameId int32) (core.GameInfo, error)
+	SetFrameResult(gameId int32, playerIndex int, pins ...int) (core.GameInfo, error)
+	NextFrame(gameId int32) (core.GameInfo, error)
 }
 
 type StartGameRequest struct {
@@ -40,20 +42,15 @@ type StartGameRequest struct {
 	PlayerNames []string         `json:"player_names" binding:"required,dive,max=5"`
 }
 
-type StartGameResponse struct {
-	GameId int32 `json:"game_id"`
-	Response
-}
-
 type Response struct {
-	Error string `json:"error"`
+	Error string `json:"error,omitempty"`
 }
 
 func (h *GameHttpHandler) StartGame(c *gin.Context) {
 	var req StartGameRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, StartGameResponse{
+		c.JSON(http.StatusBadRequest, GameResponse{
 			Response: Response{
 				Error: err.Error(),
 			},
@@ -61,9 +58,9 @@ func (h *GameHttpHandler) StartGame(c *gin.Context) {
 		return
 	}
 
-	gameId, err := h.manager.StartGame(req.GameType, req.PlayerNames)
+	res, err := h.manager.StartGame(req.GameType, req.PlayerNames)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, StartGameResponse{
+		c.JSON(http.StatusBadRequest, GameResponse{
 			Response: Response{
 				Error: err.Error(),
 			},
@@ -71,7 +68,38 @@ func (h *GameHttpHandler) StartGame(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, &StartGameResponse{GameId: gameId})
+	c.JSON(http.StatusOK, GameResponse{GameInfo: &res})
+}
+
+type GameResponse struct {
+	*core.GameInfo `json:"game,omitempty"`
+	Response
+}
+
+func (h *GameHttpHandler) GetGame(c *gin.Context) {
+	gameId, err := parseGameId(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, GameResponse{
+			Response: Response{
+				Error: err.Error(),
+			},
+		})
+		return
+	}
+
+	res, err := h.manager.GetGame(gameId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, GameResponse{
+			Response: Response{
+				Error: err.Error(),
+			},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, GameResponse{
+		GameInfo: &res,
+	})
 }
 
 type SetFrameResultRequest struct {
@@ -79,16 +107,11 @@ type SetFrameResultRequest struct {
 	Pins        []string `json:"pins" binding:"required,dive,min=1"`
 }
 
-type SetFrameResultResponse struct {
-	Response
-	Players []core.PlayerScore `json:"players"`
-}
-
 func (h *GameHttpHandler) SetFrameResult(c *gin.Context) {
 	var req SetFrameResultRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, SetFrameResultResponse{
+		c.JSON(http.StatusBadRequest, GameResponse{
 			Response: Response{
 				Error: err.Error(),
 			},
@@ -98,7 +121,7 @@ func (h *GameHttpHandler) SetFrameResult(c *gin.Context) {
 
 	gameId, err := parseGameId(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, SetFrameResultResponse{
+		c.JSON(http.StatusBadRequest, GameResponse{
 			Response: Response{
 				Error: err.Error(),
 			},
@@ -108,7 +131,7 @@ func (h *GameHttpHandler) SetFrameResult(c *gin.Context) {
 
 	pins, err := parsePins(req.Pins)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, SetFrameResultResponse{
+		c.JSON(http.StatusBadRequest, GameResponse{
 			Response: Response{
 				Error: err.Error(),
 			},
@@ -117,7 +140,7 @@ func (h *GameHttpHandler) SetFrameResult(c *gin.Context) {
 
 	res, err := h.manager.SetFrameResult(gameId, req.PlayerIndex, pins...)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, SetFrameResultResponse{
+		c.JSON(http.StatusBadRequest, GameResponse{
 			Response: Response{
 				Error: err.Error(),
 			},
@@ -125,8 +148,8 @@ func (h *GameHttpHandler) SetFrameResult(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, SetFrameResultResponse{
-		Players: res,
+	c.JSON(http.StatusOK, GameResponse{
+		GameInfo: &res,
 	})
 }
 
@@ -157,6 +180,8 @@ func parsePin(pin string) (int, error) {
 		return 10, nil
 	case "/":
 		return spare, nil
+	case "-":
+		return 0, nil
 	default:
 		i, err := strconv.Atoi(pin)
 		if err != nil {
@@ -169,15 +194,10 @@ func parsePin(pin string) (int, error) {
 	}
 }
 
-type NextFrameResponse struct {
-	CurrentFrame int `json:"current_frame"`
-	Response
-}
-
 func (h *GameHttpHandler) NextFrame(c *gin.Context) {
 	gameId, err := parseGameId(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, NextFrameResponse{
+		c.JSON(http.StatusBadRequest, GameResponse{
 			Response: Response{
 				Error: err.Error(),
 			},
@@ -187,7 +207,7 @@ func (h *GameHttpHandler) NextFrame(c *gin.Context) {
 
 	res, err := h.manager.NextFrame(gameId)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, NextFrameResponse{
+		c.JSON(http.StatusBadRequest, GameResponse{
 			Response: Response{
 				Error: err.Error(),
 			},
@@ -195,8 +215,8 @@ func (h *GameHttpHandler) NextFrame(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, NextFrameResponse{
-		CurrentFrame: res,
+	c.JSON(http.StatusOK, GameResponse{
+		GameInfo: &res,
 	})
 }
 

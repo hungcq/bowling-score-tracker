@@ -29,11 +29,43 @@ func TestGameManager(t *testing.T) {
 			t.Run("should_return_success_when_starting_game_successfully", func(t *testing.T) {
 				m := NewGameManager()
 
-				gameId, err := m.StartGame(configs.TenPin, []string{"hung"})
+				startGameRes, err := m.StartGame(configs.TenPin, []string{"hung"})
 
 				assert.NoError(t, err)
-				assert.GreaterOrEqual(t, gameId, int32(1))
+				assert.GreaterOrEqual(t, startGameRes.Id, int32(1))
 			})
+		})
+	})
+
+	t.Run("GetGameInfo", func(t *testing.T) {
+		t.Run("should_reject_invalid_game_id", func(t *testing.T) {
+			m := NewGameManager()
+
+			_, err := m.GetGame(1)
+
+			assert.Error(t, err)
+		})
+
+		t.Run("should_return_game_info_when_game_id_is_valid", func(t *testing.T) {
+			m := NewGameManager()
+			startGameRes, err := m.StartGame(configs.TenPin, []string{"hung"})
+			m.SetFrameResult(startGameRes.Id, 0, 10)
+
+			res, err := m.GetGame(startGameRes.Id)
+
+			assert.NoError(t, err)
+			assert.Equal(t, GameInfo{
+				Id:           startGameRes.Id,
+				CurrentFrame: 0,
+				Players: []PlayerScore{
+					{
+						Name:       "hung",
+						Frames:     [][]int{{10}, nil, nil, nil, nil, nil, nil, nil, nil, nil},
+						Scores:     []int{10, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+						TotalScore: 10,
+					},
+				},
+			}, res, "player score should reflect true score")
 		})
 	})
 
@@ -49,22 +81,28 @@ func TestGameManager(t *testing.T) {
 		t.Run("when_game_id_is_valid", func(t *testing.T) {
 			t.Run("should_return_error_when_failing_to_set_frame_result", func(t *testing.T) {
 				m := NewGameManager()
-				gameId, _ := m.StartGame(configs.TenPin, []string{"hung"})
+				startGameRes, _ := m.StartGame(configs.TenPin, []string{"hung"})
 
-				_, err := m.SetFrameResult(gameId, 0, 1)
+				_, err := m.SetFrameResult(startGameRes.Id, 0, 1)
 				assert.Error(t, err)
 			})
 			t.Run("should_return_success_when_setting_frame_result_successfully", func(t *testing.T) {
 				m := NewGameManager()
-				gameId, err := m.StartGame(configs.TenPin, []string{"hung"})
+				startGameRes, err := m.StartGame(configs.TenPin, []string{"hung"})
 
-				res, err := m.SetFrameResult(gameId, 0, 10)
+				res, err := m.SetFrameResult(startGameRes.Id, 0, 10)
 
 				assert.NoError(t, err)
-				assert.Equal(t, []PlayerScore{
-					{
-						Scores:     []int{10, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-						TotalScore: 10,
+				assert.Equal(t, GameInfo{
+					Id:           startGameRes.Id,
+					CurrentFrame: 0,
+					Players: []PlayerScore{
+						{
+							Name:       "hung",
+							Frames:     [][]int{{10}, nil, nil, nil, nil, nil, nil, nil, nil, nil},
+							Scores:     []int{10, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+							TotalScore: 10,
+						},
 					},
 				}, res, "player score should reflect true score")
 			})
@@ -83,12 +121,12 @@ func TestGameManager(t *testing.T) {
 		t.Run("when_game_id_is_valid", func(t *testing.T) {
 			t.Run("should_increment_frame", func(t *testing.T) {
 				m := NewGameManager()
-				gameId, err := m.StartGame(configs.TenPin, []string{"hung"})
+				startGameRes, err := m.StartGame(configs.TenPin, []string{"hung"})
 
-				res, err := m.NextFrame(gameId)
+				res, err := m.NextFrame(startGameRes.Id)
 
 				assert.NoError(t, err)
-				assert.Equal(t, 1, res)
+				assert.Equal(t, 1, res.CurrentFrame)
 			})
 		})
 	})
