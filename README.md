@@ -44,6 +44,10 @@ This backend app can be deployed on the cloud as:
 - (With a running ECS cluster) Create a task & service definition to run the service
 - Config networking for the cluster, including VPC for the cluster, task networking for the service,
 then a load balancer targeting the ECS service task
+### 3. A serverless app (eg Lambda function)
+- This option requires changing the code to follow the programming model of the service provider
+- Create & deploy the lambda function
+- Create an API gateway to route external requests to the lambda function
 
 ## Happy flow & sample request
 1. Start a game with player names
