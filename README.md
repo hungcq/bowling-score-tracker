@@ -37,15 +37,18 @@ This backend app can be deployed on the cloud as:
 ### 1. A virtual machine image (eg on AWS)
 - Build the VM image
 - Create an auto-scaling group
-- Set up an application load balancer with HTTPS targeting the auto-scaling group
+- Set up an application load balancer with HTTPS targeting the auto-scaling group.
+Since the app is stateful, route the requests based on hash of IP to make sure 1 session is routed to 1 instance.
 - (Optional) set up a domain for the load balancer
 ### 2. A containerized app (eg AWS ACS)
 - Build & push the docker image to registry
 - (With a running ECS cluster) Create a task & service definition to run the service
 - Config networking for the cluster, including VPC for the cluster, task networking for the service,
-then a load balancer targeting the ECS service task
+then a load balancer targeting the ECS service task. Since the app is stateful,
+route the requests based on hash of IP to make sure 1 session is routed to 1 instance.
 ### 3. A serverless app (eg Lambda function)
-- This option requires changing the code to follow the programming model of the service provider
+- This option requires changing the code to follow the programming model of the service provider.
+A storage layer also need to be added to make the app stateless.
 - Create & deploy the lambda function
 - Create an API gateway to route external requests to the lambda function
 
