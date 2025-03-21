@@ -1,4 +1,5 @@
 # Bowling Score Tracker
+Backend application for tracking bowling scores
 
 ## Assumptions
 - My interpretation of user story 4:
@@ -20,13 +21,16 @@ given that there is no frontend to show and highlight the current frame and disp
 - Design the endpoints following REST standard:
 the actions allowed in a game is quite specific and limited
 (eg increase the current frame, update score of a particular player in the current frame).
-Therefore I just named the endpoints following the action performed.
+Therefore, I just named the endpoints following the action performed.
 - Due to limited time to implement and test this system, I didn't implement a storage layer.
 Game data is stored transiently in-memory.
 However, because the code is already organized by layers and has concerns separated,
 a storage layer can easily be implemented and integrated,
 by adding a `storage` package that implements a `GameRepository` interface declared in game `managers`.
 The `GameManagers` would then load and store the game after each update operation.
+
+## Build & run
+go build main.go && ./main
 
 ## Happy flow & sample request
 1. Start a game with player names
