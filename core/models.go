@@ -7,17 +7,22 @@ import (
 	"fmt"
 )
 
+// Game interface is the standard interface for all bowling games.
 type Game interface {
 	StartGame(playerNames []string) error
 	NextFrame() int
 	GetCurrentFrame() int
 	GetPlayers() []*Player
+	// SetFrameResult set the result of a player at a specific playerIndex in the current frame of the game
+	// @params pins contains the numbers of pins knocked by each roll.
+	// Examples: strike: pins = [1], non-strike: pins = [3, 4], last frame spare: pins = [4,6,5]
 	SetFrameResult(playerIndex int, pins ...int) error
 }
 
 const numPin = 10
 const maxPlayer = 5
 
+// TenPinGame implements the rule of 10-pin bowling
 type TenPinGame struct {
 	players      []*Player
 	currentFrame int
@@ -65,6 +70,7 @@ func (t *TenPinGame) SetFrameResult(playerIndex int, pins ...int) error {
 	return t.players[playerIndex].Frames[t.currentFrame].KnockPins(pins...)
 }
 
+// Player contains the name and roll results by frame of a player in a game
 type Player struct {
 	Name   string
 	Frames [10]Frame
@@ -91,6 +97,7 @@ func (p *Player) GetFrameResults() [][]int {
 	return res
 }
 
+// GetScores calculates the scores of all frames
 func (p *Player) GetScores() []int {
 	var res []int
 	for i, f := range p.Frames {
@@ -110,11 +117,14 @@ func (p *Player) GetScores() []int {
 	return res
 }
 
+// Frame represents the frame result of a player
 type Frame interface {
+	// KnockPins set the number of pins knocked in the frame
 	KnockPins(pins ...int) error
 	GetPins() []int
 }
 
+// NormalFrame represents frame 1-9 in 10-pin bowling game
 type NormalFrame struct {
 	pins []int
 }
@@ -172,6 +182,7 @@ func (n *NormalFrame) isSpare() bool {
 	return len(n.pins) >= 2 && n.pins[0]+n.pins[1] == numPin
 }
 
+// LastFrame represents the last frame (10) in 10-pin bowling game
 type LastFrame struct {
 	pins []int
 }

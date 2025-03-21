@@ -15,6 +15,7 @@ func RegisterEndpoints(r *gin.Engine) {
 	gameHandler := NewGameHttpHandler(core.NewGameManager())
 	r.POST("/start_game", gameHandler.StartGame)
 	r.GET("/:game_id", gameHandler.GetGame)
+	// HTTP endpoint for setting the result of a player at a specific playerIndex in the current frame of the game
 	r.POST("/:game_id/set_frame_result", gameHandler.SetFrameResult)
 	r.POST("/:game_id/next_frame", gameHandler.NextFrame)
 }
@@ -104,7 +105,7 @@ func (h *GameHttpHandler) GetGame(c *gin.Context) {
 
 type SetFrameResultRequest struct {
 	PlayerIndex int      `json:"player_index" binding:"min=0"`
-	Pins        []string `json:"pins" binding:"required,dive,min=1"`
+	Pins        []string `json:"pins" binding:"required,dive"`
 }
 
 func (h *GameHttpHandler) SetFrameResult(c *gin.Context) {
@@ -188,7 +189,7 @@ func parsePin(pin string) (int, error) {
 			return 0, err
 		}
 		if i < 0 || i >= 10 {
-			return 0, errors.New("pin must be X, /, or between 0 and 10")
+			return 0, errors.New("pin must be X, /, -, or between 0 and 10")
 		}
 		return i, nil
 	}

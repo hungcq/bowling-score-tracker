@@ -11,6 +11,9 @@ import (
 
 var id atomic.Int32
 
+/*
+GameManager handles external requests, coordinate the domain objects and the data storage layer.
+*/
 type GameManager struct {
 	GameById map[int32]Game
 }
@@ -19,6 +22,7 @@ func NewGameManager() *GameManager {
 	return &GameManager{GameById: map[int32]Game{}}
 }
 
+// GameInfo is the standard object used to communicate about the state of a game.
 type GameInfo struct {
 	Id           int32         `json:"id"`
 	CurrentFrame int           `json:"current_frame"`
@@ -67,6 +71,9 @@ type PlayerScore struct {
 	TotalScore int     `json:"total_score"`
 }
 
+// SetFrameResult set the result of a player at a specific playerIndex in the current frame of a specific game.
+// @params pins contains the numbers of pins knocked by each roll.
+// Examples: strike: pins = [1], non-strike: pins = [3, 4], last frame spare: pins = [4,6,5]
 func (m *GameManager) SetFrameResult(gameId int32, playerIndex int, pins ...int) (g GameInfo, err error) {
 	game := m.GameById[gameId]
 	if game == nil {
@@ -84,6 +91,7 @@ func (m *GameManager) SetFrameResult(gameId int32, playerIndex int, pins ...int)
 	}, nil
 }
 
+// NextFrame increases the current frame of a game
 func (m *GameManager) NextFrame(gameId int32) (g GameInfo, err error) {
 	game := m.GameById[gameId]
 	if game == nil {
