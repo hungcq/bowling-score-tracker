@@ -29,8 +29,21 @@ a storage layer can easily be implemented and integrated,
 by adding a `storage` package that implements a `GameRepository` interface declared in game `managers`.
 The `GameManagers` would then load and store the game after each update operation.
 
-## Build & run
+## Build & run locally
 go build main.go && ./main
+
+## Deployment options
+This backend app can be deployed on the cloud as:
+### 1. A virtual machine image (eg on AWS)
+- Build the VM image
+- Create an auto-scaling group
+- Set up an application load balancer with HTTPS targeting the auto-scaling group
+- (Optional) set up a domain for the load balancer
+### 2. A containerized app (eg AWS ACS)
+- Build & push the docker image to registry
+- (With a running ECS cluster) Create a task & service definition to run the service
+- Config networking for the cluster, including VPC for the cluster, task networking for the service,
+then a load balancer targeting the ECS service task
 
 ## Happy flow & sample request
 1. Start a game with player names
