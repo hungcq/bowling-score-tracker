@@ -229,7 +229,9 @@ func TestGameHttpHandler(t *testing.T) {
 			})
 
 			t.Run("should_return_error_when_manager_set_frame_result_fails", func(t *testing.T) {
-				mockManager.EXPECT().SetFrameResult(int32(123), validReq.PlayerIndex, gomock.Any()).Return(core.GameInfo{}, errors.New("set frame error"))
+				mockManager.EXPECT().
+					SetFrameResult(int32(123), validReq.PlayerIndex, gomock.Any()).
+					Return(core.GameInfo{}, errors.New("set frame error"))
 
 				req, _ := http.NewRequest(http.MethodPost, "/123/set_frame_result", bytes.NewBuffer(body))
 				recorder := httptest.NewRecorder()
