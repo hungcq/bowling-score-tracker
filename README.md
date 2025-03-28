@@ -40,7 +40,7 @@ This backend app can be deployed on the cloud as:
 - Set up an application load balancer with HTTPS targeting the auto-scaling group.
 Since the app is stateful, route the requests based on hash of IP to make sure 1 session is routed to 1 instance.
 - (Optional) set up a domain for the load balancer
-### 2. A containerized app (eg AWS ACS)
+### 2. A containerized app (eg AWS ECS)
 - Build & push the docker image to registry
 - (With a running ECS cluster) Create a task & service definition to run the service
 - Config networking for the cluster, including VPC for the cluster, task networking for the service,
