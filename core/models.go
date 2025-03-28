@@ -15,7 +15,7 @@ type Game interface {
 	GetPlayers() []*Player
 	// SetFrameResult set the result of a player at a specific playerIndex in the current frame of the game
 	// @params pins contains the numbers of pins knocked by each roll.
-	// Examples: strike: pins = [1], non-strike: pins = [3, 4], last frame spare: pins = [4,6,5]
+	// Examples: strike: pins = [10], non-strike: pins = [3, 4], last frame spare: pins = [4,6,5]
 	SetFrameResult(playerIndex int, pins ...int) error
 }
 
@@ -67,31 +67,31 @@ func (t *TenPinGame) SetFrameResult(playerIndex int, pins ...int) error {
 		return errors.New("invalid player index")
 	}
 
-	return t.players[playerIndex].Frames[t.currentFrame].KnockPins(pins...)
+	return t.players[playerIndex].frames[t.currentFrame].KnockPins(pins...)
 }
 
 // Player contains the name and roll results by frame of a player in a game
 type Player struct {
-	Name   string
-	Frames [10]Frame
+	name   string
+	frames [10]Frame
 }
 
 func NewPlayer(name string) *Player {
 	var frames [10]Frame
 	for i := 0; i < 9; i++ {
-		frames[i] = &NormalFrame{}
+		frames[i] = &normalFrame{}
 	}
-	frames[9] = &LastFrame{}
+	frames[9] = &lastFrame{}
 
 	return &Player{
-		Name:   name,
-		Frames: frames,
+		name:   name,
+		frames: frames,
 	}
 }
 
 func (p *Player) GetFrameResults() [][]int {
 	var res [][]int
-	for _, frame := range p.Frames {
+	for _, frame := range p.frames {
 		res = append(res, frame.GetPins())
 	}
 	return res
@@ -100,17 +100,17 @@ func (p *Player) GetFrameResults() [][]int {
 // GetScores calculates the scores of all frames
 func (p *Player) GetScores() []int {
 	var res []int
-	for i, f := range p.Frames {
+	for i, f := range p.frames {
 		switch frame := f.(type) {
-		case *NormalFrame:
+		case *normalFrame:
 			var nextRolls []int
 			j := i + 1
-			for j < len(p.Frames) {
-				nextRolls = append(nextRolls, p.Frames[j].GetPins()...)
+			for j < len(p.frames) {
+				nextRolls = append(nextRolls, p.frames[j].GetPins()...)
 				j++
 			}
 			res = append(res, frame.GetScore(nextRolls))
-		case *LastFrame:
+		case *lastFrame:
 			res = append(res, frame.GetScore())
 		}
 	}
@@ -124,12 +124,12 @@ type Frame interface {
 	GetPins() []int
 }
 
-// NormalFrame represents frame 1-9 in 10-pin bowling game
-type NormalFrame struct {
+// normalFrame represents frame 1-9 in 10-pin bowling game
+type normalFrame struct {
 	pins []int
 }
 
-func (n *NormalFrame) KnockPins(pins ...int) error {
+func (n *normalFrame) KnockPins(pins ...int) error {
 	// strike
 	if pins[0] == numPin {
 		if len(pins) > 1 {
@@ -151,11 +151,11 @@ func (n *NormalFrame) KnockPins(pins ...int) error {
 	return nil
 }
 
-func (n *NormalFrame) GetPins() []int {
+func (n *normalFrame) GetPins() []int {
 	return n.pins
 }
 
-func (n *NormalFrame) GetScore(nextRolls []int) int {
+func (n *normalFrame) GetScore(nextRolls []int) int {
 	res := 0
 	for _, e := range n.pins {
 		res += e
@@ -174,20 +174,20 @@ func (n *NormalFrame) GetScore(nextRolls []int) int {
 	return res
 }
 
-func (n *NormalFrame) isStrike() bool {
+func (n *normalFrame) isStrike() bool {
 	return len(n.pins) >= 1 && n.pins[0] == numPin
 }
 
-func (n *NormalFrame) isSpare() bool {
+func (n *normalFrame) isSpare() bool {
 	return len(n.pins) >= 2 && n.pins[0]+n.pins[1] == numPin
 }
 
-// LastFrame represents the last frame (10) in 10-pin bowling game
-type LastFrame struct {
+// lastFrame represents the last frame (10) in 10-pin bowling game
+type lastFrame struct {
 	pins []int
 }
 
-func (l *LastFrame) KnockPins(pins ...int) error {
+func (l *lastFrame) KnockPins(pins ...int) error {
 	if len(pins) < 2 {
 		return errors.New("invalid input: len must be at least 2 for last frame")
 	}
@@ -223,11 +223,11 @@ func (l *LastFrame) KnockPins(pins ...int) error {
 	return nil
 }
 
-func (l *LastFrame) GetPins() []int {
+func (l *lastFrame) GetPins() []int {
 	return l.pins
 }
 
-func (l *LastFrame) GetScore() int {
+func (l *lastFrame) GetScore() int {
 	res := 0
 	for _, e := range l.pins {
 		res += e

@@ -137,7 +137,7 @@ func TestTenPinGame(t *testing.T) {
 			err = game.SetFrameResult(0, 10)
 
 			assert.NoError(t, err, "should return success")
-			rolls := game.GetPlayers()[0].Frames[game.currentFrame].GetPins()
+			rolls := game.GetPlayers()[0].frames[game.currentFrame].GetPins()
 			assert.Equal(t, []int{numPin}, rolls, "should record a single roll with all pins knocked down")
 		})
 
@@ -150,7 +150,7 @@ func TestTenPinGame(t *testing.T) {
 			err = game.SetFrameResult(0, 4, 6)
 
 			assert.NoError(t, err, "should return success")
-			rolls := game.GetPlayers()[0].Frames[game.currentFrame].GetPins()
+			rolls := game.GetPlayers()[0].frames[game.currentFrame].GetPins()
 			expected := []int{4, numPin - 4}
 			assert.Equal(t, expected, rolls, "should record two rolls summing to all pins")
 		})
@@ -164,7 +164,7 @@ func TestTenPinGame(t *testing.T) {
 			err = game.SetFrameResult(0, 3, 5)
 
 			assert.NoError(t, err, "should return success")
-			rolls := game.GetPlayers()[0].Frames[game.currentFrame].GetPins()
+			rolls := game.GetPlayers()[0].frames[game.currentFrame].GetPins()
 			expected := []int{3, 5}
 			assert.Equal(t, expected, rolls, "open frame should record the provided two roll scores")
 		})
@@ -177,7 +177,7 @@ func TestTenPinGame(t *testing.T) {
 
 			err = game.SetFrameResult(0, 10, 7, 2)
 			assert.NoError(t, err, "should return success")
-			rolls := game.GetPlayers()[0].Frames[game.currentFrame].GetPins()
+			rolls := game.GetPlayers()[0].frames[game.currentFrame].GetPins()
 			expected := []int{numPin, 7, 2}
 			assert.Equal(t, expected, rolls, "should record three rolls")
 		})
@@ -190,7 +190,7 @@ func TestTenPinGame(t *testing.T) {
 
 			err = game.SetFrameResult(0, 6, 4, 8)
 			assert.NoError(t, err, "should return success")
-			rolls := game.GetPlayers()[0].Frames[game.currentFrame].GetPins()
+			rolls := game.GetPlayers()[0].frames[game.currentFrame].GetPins()
 			expected := []int{6, 4, 8}
 			assert.Equal(t, expected, rolls, "should record three rolls (including bonus)")
 		})
@@ -203,7 +203,7 @@ func TestTenPinGame(t *testing.T) {
 
 			err = game.SetFrameResult(0, 3, 6)
 			assert.NoError(t, err)
-			rolls := game.GetPlayers()[0].Frames[game.currentFrame].GetPins()
+			rolls := game.GetPlayers()[0].frames[game.currentFrame].GetPins()
 			expected := []int{3, 6}
 			assert.Equal(t, expected, rolls, "should record two rolls")
 		})
@@ -215,11 +215,11 @@ func TestPlayer(t *testing.T) {
 		player := NewPlayer("max")
 		// For frames 0-8, set as strikes.
 		for i := 0; i < 9; i++ {
-			err := player.Frames[i].KnockPins(10)
+			err := player.frames[i].KnockPins(10)
 			assert.NoError(t, err)
 		}
 		// Last frame as strike with two bonus rolls.
-		err := player.Frames[9].KnockPins(10, 10, 10)
+		err := player.frames[9].KnockPins(10, 10, 10)
 		assert.NoError(t, err)
 
 		scores := player.GetScores()
@@ -243,11 +243,11 @@ func TestPlayer(t *testing.T) {
 			{3, 5}, // 8
 		}
 		for i, s := range scores {
-			err := player.Frames[i].KnockPins(s[0], s[1])
+			err := player.frames[i].KnockPins(s[0], s[1])
 			require.NoError(t, err)
 		}
 		// Last frame as open frame.
-		err := player.Frames[9].KnockPins(3, 4) // 7
+		err := player.frames[9].KnockPins(3, 4) // 7
 		require.NoError(t, err)
 
 		// execute
@@ -260,26 +260,26 @@ func TestPlayer(t *testing.T) {
 
 	t.Run("incomplete_game_with_strike_spare", func(t *testing.T) {
 		player := NewPlayer("spare")
-		player.Frames[0].KnockPins(10)
-		player.Frames[1].KnockPins(4, 6)
-		player.Frames[2].KnockPins(4, 4)
-		player.Frames[3].KnockPins(10)
+		player.frames[0].KnockPins(10)
+		player.frames[1].KnockPins(4, 6)
+		player.frames[2].KnockPins(4, 4)
+		player.frames[3].KnockPins(10)
 		expected := []int{20, 14, 8, 10, 0, 0, 0, 0, 0, 0}
 		assert.Equal(t, expected, player.GetScores())
 	})
 
 	t.Run("complete_game_with_strike_spare", func(t *testing.T) {
 		player := NewPlayer("spare")
-		player.Frames[0].KnockPins(10)
-		player.Frames[1].KnockPins(9, 1)
-		player.Frames[2].KnockPins(8, 1)
-		player.Frames[3].KnockPins(7, 3)
-		player.Frames[4].KnockPins(10)
-		player.Frames[5].KnockPins(6, 4)
-		player.Frames[6].KnockPins(5, 3)
-		player.Frames[7].KnockPins(9, 1)
-		player.Frames[8].KnockPins(10)
-		player.Frames[9].KnockPins(7, 3, 8)
+		player.frames[0].KnockPins(10)
+		player.frames[1].KnockPins(9, 1)
+		player.frames[2].KnockPins(8, 1)
+		player.frames[3].KnockPins(7, 3)
+		player.frames[4].KnockPins(10)
+		player.frames[5].KnockPins(6, 4)
+		player.frames[6].KnockPins(5, 3)
+		player.frames[7].KnockPins(9, 1)
+		player.frames[8].KnockPins(10)
+		player.frames[9].KnockPins(7, 3, 8)
 		expected := []int{20, 18, 9, 20, 20, 15, 8, 20, 20, 18}
 		assert.Equal(t, expected, player.GetScores())
 	})

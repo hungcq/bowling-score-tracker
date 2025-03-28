@@ -44,6 +44,7 @@ func (m *GameManager) StartGame(t configs.GameType, playerNames []string) (g Gam
 
 	curId := id.Add(1)
 	m.GameById[curId] = game
+
 	return GameInfo{
 		Id:           curId,
 		CurrentFrame: game.GetCurrentFrame(),
@@ -73,7 +74,7 @@ type PlayerScore struct {
 
 // SetFrameResult set the result of a player at a specific playerIndex in the current frame of a specific game.
 // @params pins contains the numbers of pins knocked by each roll.
-// Examples: strike: pins = [1], non-strike: pins = [3, 4], last frame spare: pins = [4,6,5]
+// Examples: strike: pins = [10], non-strike: pins = [3, 4], last frame spare: pins = [4,6,5]
 func (m *GameManager) SetFrameResult(gameId int32, playerIndex int, pins ...int) (g GameInfo, err error) {
 	game := m.GameById[gameId]
 	if game == nil {
@@ -109,7 +110,7 @@ func (m *GameManager) NextFrame(gameId int32) (g GameInfo, err error) {
 
 func playerToPlayerScore(p *Player, index int) PlayerScore {
 	return PlayerScore{
-		Name:   p.Name,
+		Name:   p.name,
 		Frames: p.GetFrameResults(),
 		Scores: p.GetScores(),
 		TotalScore: lo.Reduce(p.GetScores(), func(agg int, item int, index int) int {
